@@ -208,7 +208,8 @@ async function convertChunkToSpeech(
 export async function convertTextToSpeech(
   text: string,
   onProgress?: (progress: TTSProgress) => void,
-  voiceName: string = 'Kore'
+  voiceName: string = 'Kore',
+  maxWords: number = 1500
 ): Promise<Array<{blob: Blob, filename: string, url: string}>> {
   try {
     // Split text into chunks

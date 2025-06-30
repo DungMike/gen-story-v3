@@ -107,13 +107,14 @@ export const sanitizePromptForSafety = async (rejectedPrompt: string): Promise<s
     }
 };
 
-export const generateImage = async (prompt: string): Promise<string[]> => {
+
+export const generateImage = async (prompt: string, numberOfImages: number = 4): Promise<string[]> => {
     try {
         const response = await ai.models.generateImages({
             model: 'imagen-3.0-generate-002',
             prompt: prompt,
             config: {
-                numberOfImages: 4,
+                numberOfImages: Math.min(Math.max(numberOfImages, 1), 4), // Ensure between 1-4
                 outputMimeType: 'image/jpeg',
                 aspectRatio: "16:9"
             },

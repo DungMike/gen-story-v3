@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useI18n } from '@/providers/I18nProvider';
 import { useParams, useRouter } from 'next/navigation';
 import { convertTextToSpeech, TTSProgress, getStoryByIdFromLocalStorage, getTTSRateLimitStatus } from '../services/ttsService';
 import Header from '../components/Header';
+import JSZip from 'jszip';
 
 const VoicePage: React.FC = () => {
   const { t } = useI18n();
@@ -21,6 +22,8 @@ const VoicePage: React.FC = () => {
   const [audioFiles, setAudioFiles] = useState<Array<{blob: Blob, filename: string, url: string}>>([]);
   const [error, setError] = useState<string | null>(null);
   const [rateLimitStatus, setRateLimitStatus] = useState(getTTSRateLimitStatus());
+  const [selectedVoice, setSelectedVoice] = useState<string>('Kore');
+  const [maxWords, setMaxWords] = useState<number>(1500);
 
   useEffect(() => {
     // Get story text by ID from localStorage
@@ -61,7 +64,7 @@ const VoicePage: React.FC = () => {
     try {
       const audioFiles = await convertTextToSpeech(storyText, (progressUpdate) => {
         setProgress(progressUpdate);
-      });
+      }, selectedVoice, maxWords);
       
       setAudioFiles(audioFiles);
       setProgress({ 
@@ -87,15 +90,60 @@ const VoicePage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleDownloadAll = () => {
-    audioFiles.forEach(audioFile => {
-      setTimeout(() => handleDownloadFile(audioFile), 100);
-    });
+  const handleDownloadAll = async () => {
+    if (audioFiles.length === 0) return;
+
+    try {
+      const zip = new JSZip();
+      
+      // Add each audio file to the zip
+      for (const audioFile of audioFiles) {
+        const arrayBuffer = await audioFile.blob.arrayBuffer();
+        zip.file(audioFile.filename, arrayBuffer);
+      }
+      
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download the zip file
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `story_audio_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error creating zip file:', error);
+      // Fallback to individual downloads
+      audioFiles.forEach((audioFile, index) => {
+        setTimeout(() => handleDownloadFile(audioFile), index * 100);
+      });
+    }
   };
 
   const getWordCount = (text: string): number => {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
   };
+
+  // Function to calculate number of chunks
+  const splitTextIntoChunks = (text: string, maxWords: number): string[] => {
+    const words = text.split(/\s+/);
+    const chunks: string[] = [];
+    
+    for (let i = 0; i < words.length; i += maxWords) {
+      const chunk = words.slice(i, i + maxWords).join(' ');
+      chunks.push(chunk);
+    }
+    
+    return chunks;
+  };
+
+  // Calculate chunks when text or maxWords changes
+  const estimatedChunks = useMemo(() => {
+    if (!storyText.trim()) return 0;
+    return splitTextIntoChunks(storyText, maxWords).length;
+  }, [storyText, maxWords]);
 
   const handleBackToHome = () => {
     router.push('/');
@@ -142,6 +190,65 @@ const VoicePage: React.FC = () => {
             </h1>
             <p className="text-gray-400">{t('tts.description')}</p>
           </div>
+
+          {/* Voice Settings */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold border-l-4 border-blue-400 pl-4">{t('tts.voiceSettings.title')}</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="voiceSelect" className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('tts.voiceSettings.voiceSelect')}
+                </label>
+                <select
+                  id="voiceSelect"
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full bg-gray-700/50 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  {Object.entries(t('tts.voices')).map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="maxWords" className="block text-sm font-medium text-gray-300 mb-2">
+                  {t('tts.voiceSettings.maxWords')}
+                </label>
+                <input
+                  id="maxWords"
+                  type="number"
+                  value={maxWords}
+                  onChange={(e) => setMaxWords(parseInt(e.target.value) || 500)}
+                  min="100"
+                  max="3000"
+                  step="50"
+                  className="w-full bg-gray-700/50 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+                                  <p className="text-xs text-gray-400 mt-1">{t('tts.voiceSettings.maxWordsHelp')}</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Chunks Estimation */}
+            {storyText && (
+              <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-600/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                    </svg>
+                                         <span className="text-sm text-blue-300 font-medium">
+                       {estimatedChunks} {estimatedChunks === 1 ? t('tts.estimation.audioFile') : t('tts.estimation.audioFiles')}
+                     </span>
+                   </div>
+                   <div className="text-xs text-gray-400">
+                     ~{Math.ceil(estimatedChunks * 2)} {t('tts.estimation.timeEstimate')}
+                   </div>
+                </div>
+              </div>
+            )}
 
           {/* Story Preview */}
           {storyText && (

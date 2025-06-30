@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getStoryByIdFromLocalStorage } from '../services/ttsService';
 import Header from '../components/Header';
 import { generateMasterPrompt, generateImagePrompt, generateImage, sanitizePromptForSafety } from '../services/generateImageService';
+import JSZip from 'jszip';
 
 interface StorySegment {
   id: number;
@@ -11,7 +12,7 @@ interface StorySegment {
   wordCount: number;
   summary: string;
   imagePrompt: string;
-  imageUrl?: string;
+  imageUrls?: string[];
 }
 
 const ImageGeneratorPage: React.FC = () => {
@@ -22,6 +23,7 @@ const ImageGeneratorPage: React.FC = () => {
   const [masterPrompt, setMasterPrompt] = useState<string>('');
   const [storyText, setStoryText] = useState<string>('');
   const [wordsPerSegment, setWordsPerSegment] = useState<number>(1000);
+  const [numberOfImages, setNumberOfImages] = useState<number>(2);
   const [segments, setSegments] = useState<StorySegment[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<number>(0);
   const [isGeneratingPrompt, setIsGeneratingPrompt] = useState<boolean>(false);
@@ -132,8 +134,6 @@ const ImageGeneratorPage: React.FC = () => {
     }
   };
 
-
-
   const handleGenerateImage = async (segmentIndex: number) => {
     if (!segments[segmentIndex].imagePrompt) {
       setError(t('imageGen.error.noPrompt'));
@@ -148,14 +148,14 @@ const ImageGeneratorPage: React.FC = () => {
       
       try {
         // Try to generate image with original prompt
-        const imageBytes = await generateImage(prompt);
+        const imageBytes = await generateImage(prompt, numberOfImages);
         
         if (imageBytes && imageBytes.length > 0) {
-          // Convert base64 to blob URL for the first generated image
-          const imageUrl = `data:image/jpeg;base64,${imageBytes[0]}`;
+          // Convert base64 to blob URLs for all generated images
+          const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
           
           const updatedSegments = [...segments];
-          updatedSegments[segmentIndex] = { ...updatedSegments[segmentIndex], imageUrl };
+          updatedSegments[segmentIndex] = { ...updatedSegments[segmentIndex], imageUrls };
           setSegments(updatedSegments);
         } else {
           throw new Error('No image generated');
@@ -173,13 +173,13 @@ const ImageGeneratorPage: React.FC = () => {
             handleImagePromptChange(segmentIndex, sanitizedPrompt);
             
             // Try again with sanitized prompt
-            const imageBytes = await generateImage(sanitizedPrompt);
+            const imageBytes = await generateImage(sanitizedPrompt, numberOfImages);
             
             if (imageBytes && imageBytes.length > 0) {
-              const imageUrl = `data:image/jpeg;base64,${imageBytes[0]}`;
+              const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
               
               const updatedSegments = [...segments];
-              updatedSegments[segmentIndex] = { ...updatedSegments[segmentIndex], imageUrl };
+              updatedSegments[segmentIndex] = { ...updatedSegments[segmentIndex], imageUrls };
               setSegments(updatedSegments);
             } else {
               throw new Error('No image generated after sanitization');
@@ -210,7 +210,7 @@ const ImageGeneratorPage: React.FC = () => {
     setIsAutoGenerating(true);
     setError(null);
     
-    const segmentsToGenerate = segments.filter((_, index) => !segments[index].imageUrl);
+    const segmentsToGenerate = segments.filter((_, index) => !segments[index].imageUrls || segments[index].imageUrls?.length === 0);
     const totalSegments = segmentsToGenerate.length;
     
     if (totalSegments === 0) {
@@ -226,7 +226,7 @@ const ImageGeneratorPage: React.FC = () => {
     let processedCount = 0;
 
     for (let i = 0; i < currentSegments.length; i++) {
-      if (currentSegments[i].imageUrl) {
+      if (currentSegments[i].imageUrls && currentSegments[i].imageUrls!.length > 0) {
         continue; // Skip already generated images
       }
 
@@ -259,12 +259,12 @@ const ImageGeneratorPage: React.FC = () => {
         // Generate image
         if (currentPrompt) {
           try {
-            const imageBytes = await generateImage(currentPrompt);
+            const imageBytes = await generateImage(currentPrompt, numberOfImages);
             
             if (imageBytes && imageBytes.length > 0) {
-              const imageUrl = `data:image/jpeg;base64,${imageBytes[0]}`;
+              const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
               
-              currentSegments[i] = { ...currentSegments[i], imageUrl };
+              currentSegments[i] = { ...currentSegments[i], imageUrls };
               setSegments([...currentSegments]);
             }
           } catch (imageError: any) {
@@ -277,12 +277,12 @@ const ImageGeneratorPage: React.FC = () => {
                 
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                const imageBytes = await generateImage(sanitizedPrompt);
+                const imageBytes = await generateImage(sanitizedPrompt, numberOfImages);
                 
                 if (imageBytes && imageBytes.length > 0) {
-                  const imageUrl = `data:image/jpeg;base64,${imageBytes[0]}`;
+                  const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
                   
-                  currentSegments[i] = { ...currentSegments[i], imageUrl };
+                  currentSegments[i] = { ...currentSegments[i], imageUrls };
                   setSegments([...currentSegments]);
                 }
               } catch (sanitizeError) {
@@ -315,24 +315,62 @@ const ImageGeneratorPage: React.FC = () => {
     setShowConfirmDialog(false);
   };
 
-  const handleDownloadAllImages = () => {
-    const imagesWithUrl = segments.filter(segment => segment.imageUrl);
+  const handleDownloadAllImages = async () => {
+    const imagesWithUrls = segments.filter(segment => segment.imageUrls && segment.imageUrls.length > 0);
     
-    if (imagesWithUrl.length === 0) {
+    if (imagesWithUrls.length === 0) {
       setError(t('imageGen.error.noImagesToDownload'));
       return;
     }
 
-    imagesWithUrl.forEach((segment, index) => {
-      setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = segment.imageUrl!;
-        link.download = `story_image_segment_${segment.id}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }, index * 500); // Delay each download by 500ms to avoid browser blocking
-    });
+    try {
+      const zip = new JSZip();
+      
+      // Add each image to the zip
+      for (const segment of imagesWithUrls) {
+        if (segment.imageUrls) {
+          for (let i = 0; i < segment.imageUrls.length; i++) {
+            const imageUrl = segment.imageUrls[i];
+            // Convert data URL to blob
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            
+            const filename = `story_segment_${segment.id}_image_${i + 1}.jpg`;
+            zip.file(filename, arrayBuffer);
+          }
+        }
+      }
+      
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download the zip file
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `story_images_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Error creating zip file:', error);
+      // Fallback to individual downloads
+      imagesWithUrls.forEach((segment) => {
+        if (segment.imageUrls) {
+          segment.imageUrls.forEach((imageUrl, index) => {
+            setTimeout(() => {
+              const link = document.createElement('a');
+              link.href = imageUrl;
+              link.download = `story_segment_${segment.id}_image_${index + 1}.jpg`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }, index * 500);
+          });
+        }
+      });
+    }
   };
 
   const handleGoToVoice = () => {
@@ -372,7 +410,7 @@ const ImageGeneratorPage: React.FC = () => {
           </button>
 
           {/* Download All Images Button */}
-          {segments.some(segment => segment.imageUrl) && (
+          {segments.some(segment => segment.imageUrls && segment.imageUrls.length > 0) && (
             <button
               onClick={handleDownloadAllImages}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300"
@@ -382,7 +420,7 @@ const ImageGeneratorPage: React.FC = () => {
               </svg>
               <span>{t('imageGen.downloadAll')}</span>
               <span className="text-xs bg-blue-800 px-2 py-1 rounded">
-                {segments.filter(segment => segment.imageUrl).length}
+                {segments.reduce((total, segment) => total + (segment.imageUrls?.length || 0), 0)}
               </span>
             </button>
           )}
@@ -400,20 +438,35 @@ const ImageGeneratorPage: React.FC = () => {
           {/* Settings */}
           <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
             <h3 className="text-lg font-semibold text-cyan-400 mb-3">{t('imageGen.settings.title')}</h3>
-            <div className="flex items-center space-x-4 mb-4">
-              <label className="text-sm text-gray-400">{t('imageGen.settings.wordsPerSegment')}:</label>
-              <input
-                type="number"
-                value={wordsPerSegment}
-                onChange={(e) => handleWordsPerSegmentChange(parseInt(e.target.value) || 1000)}
-                min="100"
-                max="5000"
-                step="100"
-                className="bg-gray-600 border border-gray-500 rounded px-3 py-1 text-white w-24"
-              />
-              <span className="text-sm text-gray-400">
-                {t('imageGen.settings.totalSegments')}: <span className="font-semibold text-cyan-400">{segments.length}</span>
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="text-sm text-gray-400">{t('imageGen.settings.wordsPerSegment')}:</label>
+                <input
+                  type="number"
+                  value={wordsPerSegment}
+                  onChange={(e) => handleWordsPerSegmentChange(parseInt(e.target.value) || 1000)}
+                  min="100"
+                  max="5000"
+                  step="100"
+                  className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-1 text-white mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400">{t('imageGen.settings.numberOfImages')}:</label>
+                <input
+                  type="number"
+                  value={numberOfImages}
+                  onChange={(e) => setNumberOfImages(Math.min(Math.max(parseInt(e.target.value) || 1, 1), 4))}
+                  min="1"
+                  max="4"
+                  className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-1 text-white mt-1"
+                />
+              </div>
+              <div>
+                <span className="text-sm text-gray-400">
+                  {t('imageGen.settings.totalSegments')}: <span className="font-semibold text-cyan-400">{segments.length}</span>
+                </span>
+              </div>
             </div>
             
             {/* Master Prompt Status */}
@@ -499,10 +552,13 @@ const ImageGeneratorPage: React.FC = () => {
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{t('imageGen.segments.segment')} {segment.id}</span>
-                      {segment.imageUrl && (
-                        <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
+                      {segment.imageUrls && segment.imageUrls.length > 0 && (
+                        <div className="flex items-center space-x-1">
+                          <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-xs text-green-400">({segment.imageUrls.length})</span>
+                        </div>
                       )}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
@@ -594,27 +650,33 @@ const ImageGeneratorPage: React.FC = () => {
             <div className="lg:col-span-1">
               <h3 className="text-lg font-semibold text-pink-400 mb-4">{t('imageGen.preview.title')}</h3>
               <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-                {segments[selectedSegment]?.imageUrl ? (
+                {segments[selectedSegment]?.imageUrls && segments[selectedSegment]?.imageUrls!.length > 0 ? (
                   <div className="space-y-3">
-                    <img
-                      src={segments[selectedSegment].imageUrl}
-                      alt={`Segment ${segments[selectedSegment].id}`}
-                      className="w-full h-64 object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = segments[selectedSegment].imageUrl!;
-                        link.download = `story_image_segment_${segments[selectedSegment].id}.jpg`;
-                        link.click();
-                      }}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>{t('imageGen.download')}</span>
-                    </button>
+                    <div className="grid grid-cols-1 gap-3">
+                      {segments[selectedSegment]?.imageUrls!.map((imageUrl, imageIndex) => (
+                        <div key={imageIndex} className="space-y-2">
+                          <img
+                            src={imageUrl}
+                            alt={`Segment ${segments[selectedSegment].id} - Image ${imageIndex + 1}`}
+                            className="w-full h-48 object-cover rounded-lg"
+                          />
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = imageUrl;
+                              link.download = `story_segment_${segments[selectedSegment].id}_image_${imageIndex + 1}.jpg`;
+                              link.click();
+                            }}
+                            className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>{t('imageGen.download')} {imageIndex + 1}</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-64 text-gray-500">
@@ -656,7 +718,7 @@ const ImageGeneratorPage: React.FC = () => {
               
               <div className="space-y-3 mb-6">
                 <p className="text-gray-300 text-sm">
-                  {t('imageGen.confirm.message') || 'This will generate images for'} {segments.filter((_, index) => !segments[index].imageUrl).length} {t('imageGen.confirm.segments') || 'segments'}.
+                  {t('imageGen.confirm.message') || 'This will generate images for'} {segments.filter((_, index) => !segments[index].imageUrls).length} {t('imageGen.confirm.segments') || 'segments'}.
                 </p>
                 
                 <div className="bg-gray-700/50 rounded-lg p-3 text-xs text-gray-400">

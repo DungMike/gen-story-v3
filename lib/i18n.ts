@@ -32,12 +32,7 @@ export const translations = {
       dashboard: "Bảng Điều Khiển",
       home: "Trang Chủ"
     },
-    app: {
-      title: "Trình tạo truyện AI",
-      subtitle: "Kiến tạo những thế giới kỳ ảo từ ý tưởng của bạn.",
-      generateError: "Đã xảy ra lỗi khi tạo truyện. Vui lòng kiểm tra API key và thử lại.",
-      yourStory: "Câu chuyện của bạn"
-    },
+
     templates: {
       crimeSpiritual: {
         name: "Án mạng tâm linh",
@@ -247,6 +242,205 @@ export const translations = {
       createFirst: "Tạo truyện ngay",
       totalStories: "Tổng số truyện",
       refresh: "Làm mới"
+    },
+    creator: {
+      title: "Tạo Truyện Với AI",
+      description: "Khám phá sức mạnh của trí tuệ nhân tạo để tạo ra những câu chuyện độc đáo và hấp dẫn",
+      template: {
+        title: "Chọn Mẫu Truyện",
+        select: "Chọn mẫu truyện"
+      },
+      navigation: {
+        backToHome: "Quay lại trang chủ"
+      },
+      actions: {
+        convertToVoice: "Chuyển thành giọng nói",
+        generateImages: "Tạo hình ảnh"
+      }
+    },
+    form: {
+      sections: {
+        coreIdea: "Ý Tưởng Cốt Lõi",
+        characters: "Nhân Vật",
+        setting: "Bối Cảnh",
+        chapterDetails: "Chi Tiết Chương",
+        model: "Mô Hình AI"
+      },
+      fields: {
+        mainTopic: "Chủ đề chính",
+        wordCount: "Số từ",
+        narrativeStyle: "Phong cách kể chuyện",
+        mainCharacterName: "Tên nhân vật chính",
+        mainCharacterDesc: "Mô tả nhân vật chính",
+        setting: "Bối cảnh",
+        settingDesc: "Mô tả bối cảnh",
+        model: "Chọn mô hình AI"
+      }
+    },
+    models: {
+      "gemini-2.5-pro": "Gemini 2.5 Pro",
+      "gemini-2.5-flash": "Gemini 2.5 Flash",
+      "gemini-2.5-flash-preview-04-17": "Gemini 2.5 Flash Preview",
+      "gemini-2.5-flash-lite-preview-06-17": "Gemini 2.5 Flash Lite"
+    },
+    app: {
+      title: "Trình tạo truyện AI",
+      subtitle: "Kiến tạo những thế giới kỳ ảo từ ý tưởng của bạn.",
+      generateError: "Đã xảy ra lỗi khi tạo truyện. Vui lòng kiểm tra API key và thử lại.",
+      yourStory: "Câu chuyện của bạn",
+      generating: "...",
+      generateStory: "Tạo Truyện"
+    },
+    tts: {
+      title: "Chuyển Đổi Giọng Nói",
+      description: "Chuyển đổi câu chuyện của bạn thành âm thanh",
+      storyPreview: "Xem Trước Truyện",
+      wordCount: "Số từ",
+      andMore: "và",
+      moreChars: "ký tự nữa",
+      rateLimitStatus: "Trạng Thái Giới Hạn TTS",
+      requestsThisMinute: "Yêu cầu trong phút này",
+      queueSize: "Kích thước hàng đợi",
+      queueInfo: "Các yêu cầu trong hàng đợi sẽ được xử lý với độ trễ 115 giây để tuân thủ giới hạn tốc độ",
+      processingQueue: "Đang xử lý hàng đợi yêu cầu...",
+      converting: "Đang chuyển đổi...",
+      startConversion: "Bắt Đầu Chuyển Đổi",
+      audioFiles: "Tệp Âm Thanh",
+      downloadAll: "Tải Tất Cả (ZIP)",
+      chunk: "Đoạn",
+      audioNotSupported: "Trình duyệt của bạn không hỗ trợ phát âm thanh.",
+      voiceSettings: {
+        title: "Cài Đặt Giọng Nói",
+        voiceSelect: "Chọn giọng nói",
+        maxWords: "Số từ tối đa mỗi đoạn",
+        maxWordsHelp: "Chia nhỏ văn bản thành các đoạn (100-3000 từ)"
+      },
+      estimation: {
+        audioFiles: "file âm thanh sẽ được tạo",
+        audioFile: "file âm thanh sẽ được tạo", 
+        timeEstimate: "phút ước tính"
+      },
+      voices: {
+        "Zephyr": "Zephyr – Sáng",
+        "Puck": "Puck – Upbeat",
+        "Charon": "Charon – Cung cấp nhiều thông tin",
+        "Kore": "Hàn Quốc – Công ty",
+        "Fenrir": "Fenrir – Mạnh mẽ",
+        "Leda": "Leda – Trẻ trung",
+        "Orus": "Orus – Công ty",
+        "Aoede": "Aoede – Breezy",
+        "Callirrhoe": "Callirrhoe – Dễ tính",
+        "Autonoe": "Autonoe – Bright",
+        "Enceladus": "Enceladus – Breathy",
+        "Iapetus": "Iapetus – Xoá",
+        "Umbriel": "Umbriel – Dễ tính",
+        "Algieba": "Algieba – Smooth",
+        "Despina": "Despina – Smooth",
+        "Erinome": "Erinome – Xoá",
+        "Algenib": "Algenib – Sỏi đá",
+        "Rasalgethi": "Rasalgethi – Cung cấp nhiều thông tin",
+        "Laomedeia": "Laomedeia – Nhạc sôi động",
+        "Achernar": "Achernar – Mềm",
+        "Alnilam": "Alnilam – Chắc chắn",
+        "Schedar": "Schedar – Even",
+        "Gacrux": "Gacrux – Người trưởng thành",
+        "Pulcherrima": "Pulcherrima – Chuyển tiếp",
+        "Achird": "Achird – Thân thiện",
+        "Zubenelgenubi": "Zubenelgenubi – Thông thường",
+        "Vindemiatrix": "Vindemiatrix – Nhẹ nhàng",
+        "Sadachbia": "Sadachbia – Lively",
+        "Sadaltager": "Sadaltager – Có kiến thức",
+        "Sulafat": "Sulafat – Ấm áp"
+      },
+      navigation: {
+        backToHome: "Quay lại trang chủ",
+        goToImage: "Tạo hình ảnh"
+      },
+      progress: {
+        starting: "Đang bắt đầu...",
+        completed: "Hoàn thành"
+      },
+      error: {
+        noContent: "Không có nội dung để chuyển đổi",
+        conversionFailed: "Chuyển đổi thất bại"
+      }
+    },
+    imageGen: {
+      title: "Tạo Hình Ảnh",
+      description: "Tạo hình ảnh cho câu chuyện của bạn",
+      downloadAll: "Tải Tất Cả (ZIP)",
+      generate: "Tạo Hình Ảnh",
+      download: "Tải Xuống",
+      navigation: {
+        backToHome: "Quay lại trang chủ",
+        goToVoice: "Chuyển thành giọng nói"
+      },
+      settings: {
+        title: "Cài Đặt",
+        wordsPerSegment: "Số từ mỗi đoạn",
+        numberOfImages: "Số ảnh mỗi đoạn",
+        totalSegments: "Tổng số đoạn",
+        masterPrompt: "Prompt chính",
+        generatingMasterPrompt: "Đang tạo prompt chính...",
+        noMasterPrompt: "Chưa có prompt chính"
+      },
+      autoGenerate: {
+        title: "Tự Động Tạo Tất Cả",
+        generating: "Đang tạo tự động...",
+        progress: "Tiến trình tự động",
+        currentSegment: "Đoạn hiện tại",
+        waitingNext: "Đang chờ đoạn tiếp theo..."
+      },
+      segments: {
+        title: "Các Đoạn",
+        segment: "Đoạn",
+        words: "từ"
+      },
+      content: {
+        title: "Nội Dung Đoạn"
+      },
+      summary: {
+        title: "Tóm Tắt",
+        placeholder: "Nhập tóm tắt cho đoạn này..."
+      },
+      prompt: {
+        title: "Prompt Tạo Hình",
+        suggest: "Gợi Ý Prompt",
+        placeholder: "Nhập prompt để tạo hình ảnh..."
+      },
+      preview: {
+        title: "Xem Trước Hình Ảnh",
+        noImage: "Chưa có hình ảnh nào được tạo cho đoạn này"
+      },
+      confirm: {
+        title: "Xác Nhận Tạo Hình Ảnh",
+        subtitle: "Bạn có chắc chắn muốn tạo hình ảnh cho tất cả các đoạn?",
+        message: "Điều này sẽ tạo hình ảnh cho",
+        segments: "đoạn",
+        note: "Lưu ý:",
+        notePoint1: "Quá trình này có thể mất vài phút",
+        notePoint2: "Hãy đảm bảo kết nối internet ổn định",
+        notePoint3: "Bạn có thể theo dõi tiến trình trong quá trình tạo",
+        proceed: "Tiến Hành"
+      },
+      error: {
+        promptGeneration: "Lỗi khi tạo prompt",
+        noPrompt: "Vui lòng nhập prompt hoặc tạo gợi ý",
+        imageGeneration: "Lỗi khi tạo hình ảnh",
+        allImagesGenerated: "Tất cả hình ảnh đã được tạo",
+        noImagesToDownload: "Không có hình ảnh nào để tải xuống"
+      }
+    },
+    ui: {
+      cancel: "Hủy",
+      confirm: "Xác nhận",
+      close: "Đóng",
+      save: "Lưu",
+      delete: "Xóa",
+      edit: "Chỉnh sửa",
+      loading: "Đang tải...",
+      error: "Lỗi",
+      success: "Thành công"
     }
   },
   en: {
@@ -281,12 +475,7 @@ export const translations = {
       dashboard: "Dashboard",
       home: "Home"
     },
-    app: {
-      title: "AI Story Generator",
-      subtitle: "Craft magical worlds from your ideas.",
-      generateError: "An error occurred while generating the story. Please check your API key and try again.",
-      yourStory: "Your Story"
-    },
+
     templates: {
       crimeSpiritual: {
         name: "Spiritual Crime",
@@ -496,6 +685,205 @@ export const translations = {
       createFirst: "Create story now",
       totalStories: "Total stories",
       refresh: "Refresh"
+    },
+    creator: {
+      title: "Create Stories with AI",
+      description: "Discover the power of artificial intelligence to create unique and engaging stories",
+      template: {
+        title: "Choose Story Template",
+        select: "Select story template"
+      },
+      navigation: {
+        backToHome: "Back to home"
+      },
+      actions: {
+        convertToVoice: "Convert to voice",
+        generateImages: "Generate images"
+      }
+    },
+    form: {
+      sections: {
+        coreIdea: "Core Idea",
+        characters: "Characters",
+        setting: "Setting",
+        chapterDetails: "Chapter Details",
+        model: "AI Model"
+      },
+      fields: {
+        mainTopic: "Main topic",
+        wordCount: "Word count",
+        narrativeStyle: "Narrative style",
+        mainCharacterName: "Main character name",
+        mainCharacterDesc: "Main character description",
+        setting: "Setting",
+        settingDesc: "Setting description",
+        model: "Choose AI model"
+      }
+    },
+    models: {
+      "gemini-2.5-pro": "Gemini 2.5 Pro",
+      "gemini-2.5-flash": "Gemini 2.5 Flash",
+      "gemini-2.5-flash-preview-04-17": "Gemini 2.5 Flash Preview",
+      "gemini-2.5-flash-lite-preview-06-17": "Gemini 2.5 Flash Lite"
+    },
+    app: {
+      title: "AI Story Generator",
+      subtitle: "Craft magical worlds from your ideas.",
+      generateError: "An error occurred while generating the story. Please check your API key and try again.",
+      yourStory: "Your Story",
+      generating: "Generating...",
+      generateStory: "Generate Story"
+    },
+    tts: {
+      title: "Text to Speech Conversion",
+      description: "Convert your story to audio",
+      storyPreview: "Story Preview",
+      wordCount: "Word count",
+      andMore: "and",
+      moreChars: "more characters",
+      rateLimitStatus: "TTS Rate Limit Status",
+      requestsThisMinute: "Requests this minute",
+      queueSize: "Queue size",
+      queueInfo: "Requests in queue will be processed with 115-second delays to respect rate limits",
+      processingQueue: "Processing queued requests...",
+      converting: "Converting...",
+      startConversion: "Start Conversion",
+      audioFiles: "Audio Files",
+      downloadAll: "Download All (ZIP)",
+      chunk: "Chunk",
+      audioNotSupported: "Your browser does not support audio playback.",
+      voiceSettings: {
+        title: "Voice Settings",
+        voiceSelect: "Select voice",
+        maxWords: "Max words per segment",
+        maxWordsHelp: "Split text into segments (100-3000 words)"
+      },
+      estimation: {
+        audioFiles: "audio files will be generated",
+        audioFile: "audio file will be generated",
+        timeEstimate: "minutes estimate"
+      },
+      voices: {
+        "Zephyr": "Zephyr – Bright",
+        "Puck": "Puck – Upbeat",
+        "Charon": "Charon – Informative",
+        "Kore": "Kore – Corporate",
+        "Fenrir": "Fenrir – Strong",
+        "Leda": "Leda – Youthful",
+        "Orus": "Orus – Corporate",
+        "Aoede": "Aoede – Breezy",
+        "Callirrhoe": "Callirrhoe – Easy-going",
+        "Autonoe": "Autonoe – Bright",
+        "Enceladus": "Enceladus – Breathy",
+        "Iapetus": "Iapetus – Clear",
+        "Umbriel": "Umbriel – Easy-going",
+        "Algieba": "Algieba – Smooth",
+        "Despina": "Despina – Smooth",
+        "Erinome": "Erinome – Clear",
+        "Algenib": "Algenib – Gravelly",
+        "Rasalgethi": "Rasalgethi – Informative",
+        "Laomedeia": "Laomedeia – Upbeat music",
+        "Achernar": "Achernar – Soft",
+        "Alnilam": "Alnilam – Confident",
+        "Schedar": "Schedar – Even",
+        "Gacrux": "Gacrux – Mature",
+        "Pulcherrima": "Pulcherrima – Transitional",
+        "Achird": "Achird – Friendly",
+        "Zubenelgenubi": "Zubenelgenubi – Normal",
+        "Vindemiatrix": "Vindemiatrix – Gentle",
+        "Sadachbia": "Sadachbia – Lively",
+        "Sadaltager": "Sadaltager – Knowledgeable",
+        "Sulafat": "Sulafat – Warm"
+      },
+      navigation: {
+        backToHome: "Back to home",
+        goToImage: "Generate images"
+      },
+      progress: {
+        starting: "Starting...",
+        completed: "Completed"
+      },
+      error: {
+        noContent: "No content to convert",
+        conversionFailed: "Conversion failed"
+      }
+    },
+    imageGen: {
+      title: "Image Generation",
+      description: "Generate images for your story",
+      downloadAll: "Download All (ZIP)",
+      generate: "Generate Image",
+      download: "Download",
+      navigation: {
+        backToHome: "Back to home",
+        goToVoice: "Convert to voice"
+      },
+      settings: {
+        title: "Settings",
+        wordsPerSegment: "Words per segment",
+        numberOfImages: "Images per segment",
+        totalSegments: "Total segments",
+        masterPrompt: "Master prompt",
+        generatingMasterPrompt: "Generating master prompt...",
+        noMasterPrompt: "No master prompt yet"
+      },
+      autoGenerate: {
+        title: "Auto Generate All",
+        generating: "Auto generating...",
+        progress: "Auto progress",
+        currentSegment: "Current segment",
+        waitingNext: "Waiting for next segment..."
+      },
+      segments: {
+        title: "Segments",
+        segment: "Segment",
+        words: "words"
+      },
+      content: {
+        title: "Segment Content"
+      },
+      summary: {
+        title: "Summary",
+        placeholder: "Enter summary for this segment..."
+      },
+      prompt: {
+        title: "Image Prompt",
+        suggest: "Suggest Prompt",
+        placeholder: "Enter prompt to generate image..."
+      },
+      preview: {
+        title: "Image Preview",
+        noImage: "No image generated for this segment yet"
+      },
+      confirm: {
+        title: "Confirm Image Generation",
+        subtitle: "Are you sure you want to generate images for all segments?",
+        message: "This will generate images for",
+        segments: "segments",
+        note: "Note:",
+        notePoint1: "This process may take several minutes",
+        notePoint2: "Please ensure stable internet connection",
+        notePoint3: "You can monitor progress during generation",
+        proceed: "Proceed"
+      },
+      error: {
+        promptGeneration: "Error generating prompt",
+        noPrompt: "Please enter a prompt or generate suggestion",
+        imageGeneration: "Error generating image",
+        allImagesGenerated: "All images have been generated",
+        noImagesToDownload: "No images to download"
+      }
+    },
+    ui: {
+      cancel: "Cancel",
+      confirm: "Confirm",
+      close: "Close",
+      save: "Save",
+      delete: "Delete",
+      edit: "Edit",
+      loading: "Loading...",
+      error: "Error",
+      success: "Success"
     }
   }
 }; 
