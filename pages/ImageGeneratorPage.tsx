@@ -3,7 +3,7 @@ import { useI18n } from '@/providers/I18nProvider';
 import { useParams, useRouter } from 'next/navigation';
 import { getStoryByIdFromLocalStorage } from '../services/ttsService';
 import Header from '../components/Header';
-import { generateMasterPrompt, generateImagePrompt, generateImage, sanitizePromptForSafety } from '../services/generateImageService';
+import { generateMasterPrompt, generateImagePrompt, generateImage, sanitizePromptForSafety, generateConsistentImagePrompt } from '../services/generateImageService';
 import JSZip from 'jszip';
 
 interface StorySegment {
@@ -117,13 +117,9 @@ const ImageGeneratorPage: React.FC = () => {
     
     try {
       const content = segments[segmentIndex].content;
-      let basePrompt = await generateImagePrompt(content);
+      const basePrompt = await generateImagePrompt(content);
       
-      // Combine with master prompt for consistency
-      let finalPrompt = basePrompt;
-      if (masterPrompt.trim()) {
-        finalPrompt = `${basePrompt}. ${masterPrompt}`;
-      }
+      const finalPrompt = generateConsistentImagePrompt(masterPrompt, basePrompt);
       
       handleImagePromptChange(segmentIndex, finalPrompt);
     } catch (error) {
@@ -242,27 +238,25 @@ const ImageGeneratorPage: React.FC = () => {
         let currentPrompt = currentSegments[i].imagePrompt;
         if (!currentPrompt) {
           const content = currentSegments[i].content;
-          let basePrompt = await generateImagePrompt(content);
+          const basePrompt = await generateImagePrompt(content);
           
-          if (masterPrompt.trim()) {
-            basePrompt = `${basePrompt}. ${masterPrompt}`;
-          }
+          currentPrompt = generateConsistentImagePrompt(masterPrompt, basePrompt);
           
-          currentPrompt = basePrompt;
-          currentSegments[i] = { ...currentSegments[i], imagePrompt: currentPrompt };
+          // Update the prompt in the local array for the loop
+          currentSegments[i].imagePrompt = currentPrompt;
+
+          // Update the React state for the UI
           handleImagePromptChange(i, currentPrompt);
-          
-          // Wait a bit for state to update
-          await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        // Generate image
+        // Generate image with the prompt
+        let imageUrls: string[] | undefined;
         if (currentPrompt) {
           try {
             const imageBytes = await generateImage(currentPrompt, numberOfImages);
             
             if (imageBytes && imageBytes.length > 0) {
-              const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
+              imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
               
               currentSegments[i] = { ...currentSegments[i], imageUrls };
               setSegments([...currentSegments]);
@@ -280,7 +274,7 @@ const ImageGeneratorPage: React.FC = () => {
                 const imageBytes = await generateImage(sanitizedPrompt, numberOfImages);
                 
                 if (imageBytes && imageBytes.length > 0) {
-                  const imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
+                  imageUrls = imageBytes.map(bytes => `data:image/jpeg;base64,${bytes}`);
                   
                   currentSegments[i] = { ...currentSegments[i], imageUrls };
                   setSegments([...currentSegments]);

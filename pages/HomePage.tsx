@@ -10,7 +10,8 @@ const HomePage: React.FC = () => {
   const { t } = useI18n();
   const router = useRouter();
   const [wordCount, setWordCount] = useState<number>(3000);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('mystery');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('mystery2');
+  console.log("🚀 ~ selectedTemplate:", selectedTemplate)
   const [currentTeamMember, setCurrentTeamMember] = useState<number>(0);
   const [selectedPlan, setSelectedPlan] = useState<string>('basic');
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);

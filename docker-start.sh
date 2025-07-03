@@ -30,7 +30,7 @@ sleep 10
 # Check if the application is running
 if docker ps | grep -q "ai-story-generator"; then
     echo "✅ AI Story Generator is running!"
-    echo "🌐 Application is available at: http://localhost:3000"
+    echo "🌐 Application is available at: http://localhost:4000"
     echo "📊 To view logs: docker-compose logs -f"
     echo "🛑 To stop: docker-compose down"
 else

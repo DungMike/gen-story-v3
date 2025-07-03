@@ -4,7 +4,6 @@ if (!process.env.GEMINI_API_KEY) {
     throw new Error("API_KEY environment variable is not set.");
 }
 
-console.log("🚀 ~ process.env.API_KEY:", process.env.GEMINI_API_KEY)
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const MASTER_PROMPT_GENERATION_SYSTEM_INSTRUCTION = `
@@ -22,22 +21,21 @@ Return ONLY the generated Master Prompt in English, with no other text, explanat
 `;
 
 const PROMPT_GENERATION_SYSTEM_INSTRUCTION = `
-You are a creative assistant expert in creating prompts for an AI image generator.
-You will be given a segment of a story. Your task is to read the segment and create a single, detailed, and effective prompt in ENGLISH that describes a key, visually-rich scene from the text.
+You are an expert at creating concise, structured prompts for an AI image generator from story segments. Your goal is to capture a key visual moment.
 
-The prompt must include:
-1.  **Main Subject:** A clear description of the main character(s), creature(s), or object(s) as they appear in the text.
-2.  **Action/Emotion:** What the subject is doing or feeling.
-3.  **Setting/Background:** The environment as described in the text.
+Follow this exact format, keeping the output in English and not too long:
+"A cinematic, ultra-detailed image. [Main Characters with descriptions in parentheses] [action/pose] [setting] — [broader environment]. [Key environmental details]. [Specific objects]. [Lighting/Atmosphere]. [Textures]. Shot on Arri Alexa LF, Zeiss Supreme Primes, natural light."
 
-IMPORTANT: Focus ONLY on describing the scene from the text. Do NOT add any art style, artist names, or technical details like 'cinematic lighting' or 'hyperrealistic'. The user will add these style details separately.
+Example:
+"A cinematic, ultra-detailed image. Elderly Vietnamese monk Tâm Minh (thin, serene, saffron robe) and police lieutenant Lê Thụ (tall, thoughtful, traditional uniform) inside Linh Khí Tự temple — misty mountaintop setting. Old stone courtyard, banyan tree, mossy roof. Inside: dim candlelight, giant ancient sandalwood Maitreya statue with a faded bloodstain near the eye. Deep shadows, textured materials (wood, stone, moss). Shot on Arri Alexa LF, Zeiss Supreme Primes, natural light."
 
-Return ONLY the English prompt, with no other text, explanation, or quotation marks around it.
-Focus: Each prompt should focus on only 1-2 main characters or a scene.
-Use keywords (Keywords): Instead of writing long sentences, use short keyword phrases, using commas.
-Clear structure: Arrange keywords in order of priority: [Main subject] + [Detailed description of subject] + [Action/Pose] + [Setting] + [Atmosphere/Lighting] + [Style/Specifications].
+Key rules:
+1.  **Be Concise:** Use descriptive keywords and short phrases. Avoid long sentences. The final prompt should be impactful and not overly long.
+2.  **Structure:** Start with "A cinematic, ultra-detailed image." and end with "Shot on Arri Alexa LF, Zeiss Supreme Primes, natural light.". Use an em dash (—) to separate the immediate setting from the broader environment.
+3.  **Characters:** Describe 1-2 main characters, with their appearance (thin, serene, saffron robe) in parentheses.
+4.  **Focus:** Capture the most important visual elements from the text.
 
-Photorealistic, highly detailed, shallow depth of field
+Return ONLY the final prompt in English. Do not include any extra text, explanations, or quotes.
 `;
 
 const SANITIZE_PROMPT_SYSTEM_INSTRUCTION = `
@@ -48,6 +46,9 @@ Focus on the narrative action and emotion. For example, instead of "a bloody swo
 Return ONLY the safe, rewritten prompt in English, with no other text or explanations.
 `;
 
+export const generateConsistentImagePrompt = (masterPrompt: string, scenePrompt: string) => {
+    return `${scenePrompt}. Master prompt for context: ${masterPrompt}`;
+};
 
 export const generateMasterPrompt = async (fullStory: string): Promise<string> => {
     try {
@@ -111,7 +112,7 @@ export const sanitizePromptForSafety = async (rejectedPrompt: string): Promise<s
 export const generateImage = async (prompt: string, numberOfImages: number = 4): Promise<string[]> => {
     try {
         const response = await ai.models.generateImages({
-            model: 'imagen-3.0-generate-002',
+            model: 'imagen-4.0-generate-preview-06-06',
             prompt: prompt,
             config: {
                 numberOfImages: Math.min(Math.max(numberOfImages, 1), 4), // Ensure between 1-4

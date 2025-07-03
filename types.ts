@@ -32,3 +32,27 @@ export interface ChapterContent {
   title: string;
   content: string;
 }
+
+// Buddhist Detective Story Form Data Interface
+export interface BuddhistDetectiveFormData {
+  genre: string;
+  story_title: string;
+  setting: string;
+  custom_setting: string;
+  main_character_name: string;
+  main_character_dharma_name: string;
+  main_character_past: string[];
+  victim_name: string;
+  victim_role: string;
+  investigator_name: string;
+  investigator_traits: string[];
+  karmic_theme: string;
+  custom_karmic_theme: string;
+  discovery_method: string;
+  philosophy_depth: number;
+  total_length: string;
+  chapter_count: number;
+  chapter_length: number;
+  ending_type: string[];
+  output_format: string;
+}

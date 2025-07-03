@@ -31,7 +31,7 @@ $containerRunning = docker ps --format "table {{.Names}}" | Select-String "ai-st
 
 if ($containerRunning) {
     Write-Host "✅ AI Story Generator is running!" -ForegroundColor Green
-    Write-Host "🌐 Application is available at: http://localhost:3000" -ForegroundColor Cyan
+    Write-Host "🌐 Application is available at: http://localhost:4000" -ForegroundColor Cyan
     Write-Host "📊 To view logs: docker-compose logs -f" -ForegroundColor White
     Write-Host "🛑 To stop: docker-compose down" -ForegroundColor White
 } else {
