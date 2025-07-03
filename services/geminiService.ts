@@ -5,7 +5,6 @@ import { BUDDHIST_DETECTIVE_PROMPTS, SETTING_DESCRIPTIONS, KARMIC_THEME_DESCRIPT
 import i18n from '../i18n';
 import { MODELS } from '@/constant/model-ai';
 
-console.log("🚀 ~ process.env.GEMINI_API_KEY:", process.env.GEMINI_API_KEY)
 if (!process.env.GEMINI_API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
@@ -38,6 +37,7 @@ export async function* generateStoryStream(formData: StoryFormData, template: St
   const t = i18n.t;
   let previousChaptersSummary = t('prompts.storyGeneration.nothingHappened');
   const totalWords = formData.wordCount || 8000; // Fallback to 8000 words if not provided
+  console.log("🚀 ~ function*generateStoryStream ~ wordCount:", formData.wordCount)
   
   const chapterNumbers = Object.keys(template.chapters).map(num => parseInt(num)).sort((a, b) => a - b);
   const wordsPerChapter = Math.floor(totalWords / chapterNumbers.length);
@@ -64,7 +64,6 @@ export async function* generateStoryStream(formData: StoryFormData, template: St
       ${previousChaptersSummary}
 
       ${t('prompts.storyGeneration.currentChapterRequirements')} (${chapterTitle}):**
-      ${t('prompts.storyGeneration.writeFullContent')} ${wordsPerChapter} ${t('prompts.storyGeneration.writingGuidelines')}
       
       ---
       ${chapterStructure}
@@ -151,16 +150,21 @@ function getDiscoveryMethodDescription(discoveryMethod: string): string {
 }
 
 // Helper function to calculate total words based on length setting
-function getTotalWordsFromLength(totalLength: string): number {
+function getTotalWordsFromLength(totalLength: string, customTotalLength?: string): number {
+  if (customTotalLength) {
+    return parseInt(customTotalLength);
+  }
   switch (totalLength) {
     case 'truyện-ngắn':
-      return 5000;
+      return 10000;
     case 'truyện-vừa':
-      return 10000;
+      return 15000;
     case 'truyện-dài':
-      return 18000;
+      return 20000;
+    case 'truyện-rất-dài':
+      return 25000;
     default:
-      return 10000;
+      return 18000;
   }
 }
 
@@ -169,10 +173,8 @@ export async function* generateBuddhistDetectiveStory(
   formData: BuddhistDetectiveFormData, 
   selectedModel: string = MODELS.GEMINI_2_5_FLASH_001
 ): AsyncGenerator<string, void, unknown> {
-  
   const prompts = getBuddhistDetectivePrompts();
-  const totalWords = getTotalWordsFromLength(formData.total_length);
-  const wordsPerChapter = Math.floor(totalWords / formData.chapter_count);
+  const totalWords = getTotalWordsFromLength(formData.total_length, formData?.custom_total_length);
   
   // Build story information from form data
   const settingDescription = getSettingDescription(formData.setting, formData.custom_setting);
@@ -214,7 +216,7 @@ Kết thúc mong muốn: ${endingTypes}
 Độ sâu triết lý: ${formData.philosophy_depth}/5 (${formData.philosophy_depth >= 4 ? 'rất sâu, có pháp thoại, Phật lý, nhân quả rõ nét' : 'vừa phải'})
 Tổng độ dài: ~${totalWords} từ
 Số chương: ${formData.chapter_count} chương
-Độ dài mỗi chương: ~${wordsPerChapter} từ
+
 
 Cấu trúc chương:
 ${Object.entries(BUDDHIST_DETECTIVE_PROMPTS.CHAPTER_TEMPLATE).map(([num, desc]) => 
@@ -228,6 +230,7 @@ Yêu cầu:
 - ${prompts.requirements.spiritualDetails}
 - ${prompts.requirements.languageStyle}
 - ${prompts.requirements.toneMaintenance}
+- ${prompts.requirements.importantNote}
 
 ${prompts.startStory}
   `;

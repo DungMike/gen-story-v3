@@ -18,19 +18,28 @@ interface StoryFormData {
   main_character_name: string;
   main_character_dharma_name: string;
   main_character_past: string[];
+  custom_main_character_past: string;
   victim_name: string;
   victim_role: string;
+  custom_victim_role: string;
   investigator_name: string;
   investigator_traits: string[];
+  custom_investigator_traits: string;
   karmic_theme: string;
   custom_karmic_theme: string;
   discovery_method: string;
-  philosophy_depth: number;
+  custom_discovery_method: string;
+  philosophy_depth: number | string;
+  custom_philosophy_depth: string;
   total_length: string;
+  custom_total_length: string;
   chapter_count: number;
-  chapter_length: number;
+  chapter_length: number | string;
+  custom_chapter_length: string;
   ending_type: string[];
+  custom_ending_type: string;
   output_format: string;
+  custom_output_format: string;
 }
 
 interface ChapterHighlight {
@@ -51,19 +60,28 @@ const ImageGeneratorPage2: React.FC = () => {
     main_character_name: 'Nguyễn Hữu Duy',
     main_character_dharma_name: 'Tâm Minh',
     main_character_past: ['từng-giết-người-vô-tội'],
+    custom_main_character_past: '',
     victim_name: 'Sư cô Như Lành',
     victim_role: 'tu-sĩ',
+    custom_victim_role: '',
     investigator_name: 'Thượng úy Lê Thụ',
     investigator_traits: ['ít-nói-từng-có-căn-tu'],
+    custom_investigator_traits: '',
     karmic_theme: 'giết-nhầm-người-vô-tội',
     custom_karmic_theme: '',
     discovery_method: 'tượng-linh-rỉ-máu',
+    custom_discovery_method: '',
     philosophy_depth: 5,
+    custom_philosophy_depth: '',
     total_length: 'truyện-vừa',
+    custom_total_length: '',
     chapter_count: 7,
     chapter_length: 1500,
+    custom_chapter_length: '',
     ending_type: ['bản-án-rõ-ràng', 'thức-tỉnh-cải-tạo', 'bài-học-nhân-quả'],
-    output_format: 'kịch-bản-kể-chuyện'
+    custom_ending_type: '',
+    output_format: 'kịch-bản-kể-chuyện',
+    custom_output_format: '',
   });
 
   // Add new state for story generation
@@ -73,6 +91,7 @@ const ImageGeneratorPage2: React.FC = () => {
   const [savedStoryInfo, setSavedStoryInfo] = useState<{id: string, title: string} | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryError, setRetryError] = useState<string | null>(null);
+  const [wordCount, setWordCount] = useState(0);
 
   // Helper function to generate default story title with incrementing number
   const generateDefaultStoryTitle = (): string => {
@@ -231,6 +250,7 @@ const ImageGeneratorPage2: React.FC = () => {
       setSavedStoryInfo(null); // Clear previous save notification
       setRetryAttempt(0);
       setRetryError(null);
+      setWordCount(0);
       
       // Convert form data to Buddhist detective format
       const buddhistFormData: BuddhistDetectiveFormData = {
@@ -241,25 +261,38 @@ const ImageGeneratorPage2: React.FC = () => {
         main_character_name: formData.main_character_name,
         main_character_dharma_name: formData.main_character_dharma_name,
         main_character_past: formData.main_character_past,
+        custom_main_character_past: formData.custom_main_character_past,
         victim_name: formData.victim_name,
         victim_role: formData.victim_role,
+        custom_victim_role: formData.custom_victim_role,
         investigator_name: formData.investigator_name,
         investigator_traits: formData.investigator_traits,
+        custom_investigator_traits: formData.custom_investigator_traits,
         karmic_theme: formData.karmic_theme,
         custom_karmic_theme: formData.custom_karmic_theme,
         discovery_method: formData.discovery_method,
-        philosophy_depth: formData.philosophy_depth,
+        custom_discovery_method: formData.custom_discovery_method,
+        philosophy_depth: Number(formData.philosophy_depth),
+        custom_philosophy_depth: formData.custom_philosophy_depth,
         total_length: formData.total_length,
+        custom_total_length: formData.custom_total_length,
         chapter_count: formData.chapter_count,
-        chapter_length: formData.chapter_length,
+        chapter_length: Number(formData.chapter_length),
+        custom_chapter_length: formData.custom_chapter_length,
         ending_type: formData.ending_type,
-        output_format: formData.output_format
+        custom_ending_type: formData.custom_ending_type,
+        output_format: formData.output_format,
+        custom_output_format: formData.custom_output_format,
       };
 
       console.log('Starting story generation with retry mechanism...', buddhistFormData);
 
       // Generate story with retry logic
       const fullStoryContent = await generateStoryWithRetry(buddhistFormData);
+      
+      // Calculate and set word count
+      const trimmedContent = fullStoryContent.trim();
+      setWordCount(trimmedContent ? trimmedContent.split(/\s+/).length : 0);
       
       // Save story to localStorage after generation completes
       if (fullStoryContent.trim()) {
@@ -425,6 +458,27 @@ const ImageGeneratorPage2: React.FC = () => {
                       {option.label}
                     </label>
                   ))}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="main_character_past"
+                      value="custom"
+                      checked={formData.main_character_past.includes('custom')}
+                      onChange={handleInputChange}
+                      className="mr-3"
+                    />
+                    ✍️ Nhập tùy chỉnh
+                  </label>
+                  {formData.main_character_past.includes('custom') && (
+                    <input
+                      type="text"
+                      name="custom_main_character_past"
+                      value={formData.custom_main_character_past}
+                      onChange={handleInputChange}
+                      placeholder="Nhập quá khứ tùy chỉnh"
+                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -457,7 +511,18 @@ const ImageGeneratorPage2: React.FC = () => {
                   <option value="tu-sĩ">Tu sĩ</option>
                   <option value="người-dân-lành">Người dân lành</option>
                   <option value="nhân-chứng-tội-lỗi">Nhân chứng của tội lỗi quá khứ</option>
+                  <option value="custom">✍️ Nhập tùy chỉnh</option>
                 </select>
+                {formData.victim_role === 'custom' && (
+                  <input
+                    type="text"
+                    name="custom_victim_role"
+                    value={formData.custom_victim_role}
+                    onChange={handleInputChange}
+                    placeholder="Nhập vai trò tùy chỉnh"
+                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -498,6 +563,27 @@ const ImageGeneratorPage2: React.FC = () => {
                       {option.label}
                     </label>
                   ))}
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="investigator_traits"
+                      value="custom"
+                      checked={formData.investigator_traits.includes('custom')}
+                      onChange={handleInputChange}
+                      className="mr-3"
+                    />
+                    ✍️ Nhập tùy chỉnh
+                  </label>
+                  {formData.investigator_traits.includes('custom') && (
+                    <input
+                      type="text"
+                      name="custom_investigator_traits"
+                      value={formData.custom_investigator_traits}
+                      onChange={handleInputChange}
+                      placeholder="Nhập đặc điểm tùy chỉnh"
+                      className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -576,6 +662,27 @@ const ImageGeneratorPage2: React.FC = () => {
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="discovery_method"
+                  value="custom"
+                  checked={formData.discovery_method === 'custom'}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh
+              </label>
+              {formData.discovery_method === 'custom' && (
+                <input
+                  type="text"
+                  name="custom_discovery_method"
+                  value={formData.custom_discovery_method}
+                  onChange={handleInputChange}
+                  placeholder="Nhập phương thức hé lộ tùy chỉnh"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -595,13 +702,34 @@ const ImageGeneratorPage2: React.FC = () => {
                     type="radio"
                     name="philosophy_depth"
                     value={option.value}
-                    checked={formData.philosophy_depth === option.value}
+                    checked={formData.philosophy_depth == option.value}
                     onChange={handleInputChange}
                     className="mr-3"
                   />
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="philosophy_depth"
+                  value="custom"
+                  checked={formData.philosophy_depth === 'custom'}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh (1-10)
+              </label>
+              {formData.philosophy_depth === 'custom' && (
+                <input
+                  type="text"
+                  name="custom_philosophy_depth"
+                  value={formData.custom_philosophy_depth}
+                  onChange={handleInputChange}
+                  placeholder="Nhập độ sâu triết lý tùy chỉnh (ví dụ: 8)"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -614,7 +742,8 @@ const ImageGeneratorPage2: React.FC = () => {
               {[
                 { value: 'truyện-ngắn', label: 'Truyện ngắn (~5.000 từ)' },
                 { value: 'truyện-vừa', label: '✅ Truyện vừa (~10.000 từ)' },
-                { value: 'truyện-dài', label: 'Truyện dài (15.000–20.000 từ)' }
+                { value: 'truyện-dài', label: 'Truyện dài (15.000–20.000 từ)' },
+                { value: 'truyện-rất-dài', label: 'Truyện rất dài (20.000–25.000 từ)' }
               ].map(option => (
                 <label key={option.value} className="flex items-center">
                   <input
@@ -628,6 +757,27 @@ const ImageGeneratorPage2: React.FC = () => {
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="total_length"
+                  value="custom"
+                  checked={formData.total_length === 'custom'}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh
+              </label>
+              {formData.total_length === 'custom' && (
+                <input
+                  type="text"
+                  name="custom_total_length"
+                  value={formData.custom_total_length}
+                  onChange={handleInputChange}
+                  placeholder="Nhập độ dài tùy chỉnh (ví dụ: ~8000 từ)"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -656,20 +806,42 @@ const ImageGeneratorPage2: React.FC = () => {
               {[
                 { value: 1000, label: '1000 từ' },
                 { value: 1500, label: '✅ 1500 từ' },
-                { value: 2000, label: '2000 từ' }
+                { value: 2000, label: '2000 từ' }, 
+                { value: 2500, label: '2500 từ' },
               ].map(option => (
                 <label key={option.value} className="flex items-center">
                   <input
                     type="radio"
                     name="chapter_length"
                     value={option.value}
-                    checked={formData.chapter_length === option.value}
+                    checked={formData.chapter_length == option.value}
                     onChange={handleInputChange}
                     className="mr-3"
                   />
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="chapter_length"
+                  value="custom"
+                  checked={formData.chapter_length === 'custom'}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh
+              </label>
+              {formData.chapter_length === 'custom' && (
+                <input
+                  type="text"
+                  name="custom_chapter_length"
+                  value={formData.custom_chapter_length}
+                  onChange={handleInputChange}
+                  placeholder="Nhập độ dài chương tùy chỉnh (ví dụ: 1200 từ)"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -696,6 +868,27 @@ const ImageGeneratorPage2: React.FC = () => {
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="ending_type"
+                  value="custom"
+                  checked={formData.ending_type.includes('custom')}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh
+              </label>
+              {formData.ending_type.includes('custom') && (
+                <input
+                  type="text"
+                  name="custom_ending_type"
+                  value={formData.custom_ending_type}
+                  onChange={handleInputChange}
+                  placeholder="Nhập cái kết tùy chỉnh"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -723,6 +916,27 @@ const ImageGeneratorPage2: React.FC = () => {
                   {option.label}
                 </label>
               ))}
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="output_format"
+                  value="custom"
+                  checked={formData.output_format === 'custom'}
+                  onChange={handleInputChange}
+                  className="mr-3"
+                />
+                ✍️ Nhập tùy chỉnh
+              </label>
+              {formData.output_format === 'custom' && (
+                <input
+                  type="text"
+                  name="custom_output_format"
+                  value={formData.custom_output_format}
+                  onChange={handleInputChange}
+                  placeholder="Nhập định dạng tùy chỉnh"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 mt-2"
+                />
+              )}
             </div>
           </div>
 
@@ -771,19 +985,28 @@ const ImageGeneratorPage2: React.FC = () => {
                 main_character_name: 'Nguyễn Hữu Duy',
                 main_character_dharma_name: 'Tâm Minh',
                 main_character_past: ['từng-giết-người-vô-tội'],
+                custom_main_character_past: '',
                 victim_name: 'Sư cô Như Lành',
                 victim_role: 'tu-sĩ',
+                custom_victim_role: '',
                 investigator_name: 'Thượng úy Lê Thụ',
                 investigator_traits: ['ít-nói-từng-có-căn-tu'],
+                custom_investigator_traits: '',
                 karmic_theme: 'giết-nhầm-người-vô-tội',
                 custom_karmic_theme: '',
                 discovery_method: 'tượng-linh-rỉ-máu',
+                custom_discovery_method: '',
                 philosophy_depth: 5,
+                custom_philosophy_depth: '',
                 total_length: 'truyện-vừa',
+                custom_total_length: '',
                 chapter_count: 7,
                 chapter_length: 1500,
+                custom_chapter_length: '',
                 ending_type: ['bản-án-rõ-ràng', 'thức-tỉnh-cải-tạo', 'bài-học-nhân-quả'],
-                output_format: 'kịch-bản-kể-chuyện'
+                custom_ending_type: '',
+                output_format: 'kịch-bản-kể-chuyện',
+                custom_output_format: '',
               })}
               className="px-8 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
             >
@@ -796,7 +1019,14 @@ const ImageGeneratorPage2: React.FC = () => {
         {showStory && (
           <div className="mt-8 bg-gray-800 p-6 rounded-lg">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-blue-400">Truyện được tạo</h2>
+              <div className="flex items-center space-x-4">
+                <h2 className="text-2xl font-bold text-blue-400">Truyện được tạo</h2>
+                {!isGenerating && wordCount > 0 && (
+                  <span className="px-3 py-1 bg-gray-700 text-sm rounded-md font-semibold text-gray-200">
+                    ~ {wordCount} từ
+                  </span>
+                )}
+              </div>
               {isGenerating && (
                 <div className="flex items-center">
                   <LoadingSpinner />

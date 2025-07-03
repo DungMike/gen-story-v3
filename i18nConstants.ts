@@ -192,7 +192,7 @@ export const getBuddhistDetectivePrompts = () => {
     masterNovelist: 'Bạn là một tiểu thuyết gia và nhà kể chuyện chuyên nghiệp, có kiến thức sâu sắc về tâm lý tội phạm, triết lý Phật giáo và nghệ thuật kể chuyện phá án nhân quả.',
     missionDescription: 'Dựa trên các thông số dưới đây, hãy viết ra một truyện hoàn chỉnh, đầy cảm xúc, logic, giàu chiều sâu, có bố cục mạch lạc, chia theo chương rõ ràng. Cốt truyện cần mang màu sắc phá án – trinh thám – nghiệp báo – sám hối.',
     writingStyle: 'Truyện nên sử dụng ngôn ngữ văn học chậm rãi, mang tính chiêm nghiệm, dễ dựng thành kịch bản podcast hoặc kể chuyện trên YouTube.',
-    completeWriting: 'Viết đầy đủ từ đầu đến cuối mà không cần báo cáo lại tôi.',
+    completeWriting: 'Chú ý quan trọng: Viết đầy đủ từ đầu đến cuối mà không cần báo cáo lại tôi.',
     storyInitInfo: 'Thông tin khởi tạo truyện như sau:',
     startStory: 'Bắt đầu kể truyện. Chia theo chương rõ ràng.',
     requirements: {
@@ -201,7 +201,8 @@ export const getBuddhistDetectivePrompts = () => {
       characterDevelopment: 'Nhân vật phải có chuyển biến nội tâm sâu sắc, đặc biệt là nhân vật chính.',
       spiritualDetails: 'Mỗi chi tiết tâm linh (mộng, tượng, máu…) cần hợp lý và mang ý nghĩa tượng trưng cho nghiệp lực.',
       languageStyle: 'Ngôn ngữ thiên về văn học, trầm lặng, không cường điệu, giàu tính trinh thám.',
-      toneMaintenance: 'Không cần mở rộng sang thể loại kinh dị, giữ tone bi – tĩnh – nhân quả – sám hối.'
+      toneMaintenance: 'Không cần mở rộng sang thể loại kinh dị, giữ tone bi – tĩnh – nhân quả – sám hối.',
+      importantNote: 'Chú ý quan trọng: số lượng từ trong mỗi chương cần được tính toán cụ thể, cần chính xác, ít nhất đạt 90%.'
     }
   };
 }; 
