@@ -313,7 +313,7 @@ export const translations = {
         title: "Cài Đặt Giọng Nói",
         voiceSelect: "Chọn giọng nói",
         maxWords: "Số từ tối đa mỗi đoạn",
-        maxWordsHelp: "Chia nhỏ văn bản thành các đoạn (100-3000 từ)"
+        maxWordsHelp: "Chia nhỏ văn bản thành các đoạn (1000-6000 từ)"
       },
       estimation: {
         audioFiles: "file âm thanh sẽ được tạo",
@@ -756,7 +756,7 @@ export const translations = {
         title: "Voice Settings",
         voiceSelect: "Select voice",
         maxWords: "Max words per segment",
-        maxWordsHelp: "Split text into segments (100-3000 words)"
+        maxWordsHelp: "Split text into segments (1000-6000 words)"
       },
       estimation: {
         audioFiles: "audio files will be generated",

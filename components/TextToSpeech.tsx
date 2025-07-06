@@ -15,9 +15,17 @@ const TextToSpeech: React.FC<TextToSpeechProps> = ({ storyText, onBack }) => {
   const [audioFiles, setAudioFiles] = useState<Array<{blob: Blob, filename: string, url: string}>>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>('Kore');
+  const [useCustomText, setUseCustomText] = useState(false);
+  const [customText, setCustomText] = useState('');
+
+  const getCurrentText = () => {
+    return useCustomText ? customText : storyText;
+  };
 
   const handleConvertToSpeech = async () => {
-    if (!storyText) {
+    const textToConvert = getCurrentText();
+    
+    if (!textToConvert) {
       setError(t('tts.noStoryToConvert'));
       return;
     }
@@ -28,7 +36,7 @@ const TextToSpeech: React.FC<TextToSpeechProps> = ({ storyText, onBack }) => {
     setAudioFiles([]);
 
     try {
-      const files = await convertTextToSpeech(storyText, (progressData) => {
+      const files = await convertTextToSpeech(textToConvert, (progressData) => {
         setProgress(progressData);
       }, selectedVoice);
       
@@ -88,16 +96,69 @@ const TextToSpeech: React.FC<TextToSpeechProps> = ({ storyText, onBack }) => {
             </button>
           </div>
 
-          {/* Story Preview */}
-          <div className="bg-gray-700/30 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2 text-purple-300">Story Preview:</h3>
-            <div className="text-gray-300 text-sm max-h-32 overflow-y-auto">
-              {storyText.substring(0, 500)}...
+          {/* Text Source Selection */}
+          {!isConverting && audioFiles.length === 0 && (
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-purple-300">
+                Chọn nguồn văn bản
+              </h3>
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    name="textSource"
+                    value="story"
+                    checked={!useCustomText}
+                    onChange={() => setUseCustomText(false)}
+                    className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 focus:ring-purple-500"
+                  />
+                  <span className="text-gray-300">Sử dụng truyện hiện tại</span>
+                </label>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    name="textSource"
+                    value="custom"
+                    checked={useCustomText}
+                    onChange={() => setUseCustomText(true)}
+                    className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 focus:ring-purple-500"
+                  />
+                  <span className="text-gray-300">Nhập văn bản tùy chỉnh</span>
+                </label>
+              </div>
             </div>
-            <p className="text-gray-500 text-xs mt-2">
-              Total words: ~{storyText.split(/\s+/).length}
-            </p>
-          </div>
+          )}
+
+          {/* Custom Text Input */}
+          {useCustomText && !isConverting && audioFiles.length === 0 && (
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-3 text-purple-300">
+                Nhập văn bản tùy chỉnh
+              </h3>
+              <textarea
+                value={customText}
+                onChange={(e) => setCustomText(e.target.value)}
+                placeholder="Nhập văn bản bạn muốn chuyển đổi thành giọng nói..."
+                className="w-full h-40 bg-gray-600 text-gray-100 border border-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
+              />
+              <p className="text-gray-500 text-xs mt-2">
+                Số từ: ~{customText.trim().split(/\s+/).filter(word => word.length > 0).length}
+              </p>
+            </div>
+          )}
+
+          {/* Story Preview */}
+          {!useCustomText && (
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-2 text-purple-300">Story Preview:</h3>
+              <div className="text-gray-300 text-sm max-h-32 overflow-y-auto">
+                {storyText.substring(0, 500)}...
+              </div>
+              <p className="text-gray-500 text-xs mt-2">
+                Total words: ~{storyText.split(/\s+/).length}
+              </p>
+            </div>
+          )}
 
           {/* Voice Selection */}
           {!isConverting && audioFiles.length === 0 && (
@@ -128,7 +189,7 @@ const TextToSpeech: React.FC<TextToSpeechProps> = ({ storyText, onBack }) => {
             <div className="flex justify-center">
               <button
                 onClick={handleConvertToSpeech}
-                disabled={!storyText}
+                disabled={!getCurrentText()}
                 className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:from-purple-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
               >
                 {t('tts.generateVoice')}

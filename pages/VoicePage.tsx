@@ -23,7 +23,13 @@ const VoicePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [rateLimitStatus, setRateLimitStatus] = useState(getTTSRateLimitStatus());
   const [selectedVoice, setSelectedVoice] = useState<string>('Kore');
-  const [maxWords, setMaxWords] = useState<number>(1500);
+  const [maxWords, setMaxWords] = useState<number>(3000);
+  const [useCustomText, setUseCustomText] = useState(false);
+  const [customText, setCustomText] = useState('');
+
+  const getCurrentText = () => {
+    return useCustomText ? customText : storyText;
+  };
 
   useEffect(() => {
     // Get story text by ID from localStorage
@@ -51,7 +57,9 @@ const VoicePage: React.FC = () => {
   }, []);
 
   const handleConvertToSpeech = async () => {
-    if (!storyText.trim()) {
+    const textToConvert = getCurrentText();
+    
+    if (!textToConvert.trim()) {
       setError(t('tts.error.noContent') || 'No content to convert');
       return;
     }
@@ -62,7 +70,7 @@ const VoicePage: React.FC = () => {
     setProgress({ current: 0, total: 0, currentChunk: t('tts.progress.starting') || 'Starting...', status: 'processing' });
 
     try {
-      const audioFiles = await convertTextToSpeech(storyText, (progressUpdate) => {
+      const audioFiles = await convertTextToSpeech(textToConvert, (progressUpdate) => {
         setProgress(progressUpdate);
       }, selectedVoice, maxWords);
       
@@ -141,9 +149,10 @@ const VoicePage: React.FC = () => {
 
   // Calculate chunks when text or maxWords changes
   const estimatedChunks = useMemo(() => {
-    if (!storyText.trim()) return 0;
-    return splitTextIntoChunks(storyText, maxWords).length;
-  }, [storyText, maxWords]);
+    const textToAnalyze = getCurrentText();
+    if (!textToAnalyze.trim()) return 0;
+    return splitTextIntoChunks(textToAnalyze, maxWords).length;
+  }, [getCurrentText(), maxWords]);
 
   const handleBackToHome = () => {
     router.push('/');
@@ -191,6 +200,60 @@ const VoicePage: React.FC = () => {
             <p className="text-gray-400">{t('tts.description')}</p>
           </div>
 
+          {/* Text Source Selection */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold border-l-4 border-blue-400 pl-4">Chọn nguồn văn bản</h2>
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <div className="space-y-3">
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    name="textSource"
+                    value="story"
+                    checked={!useCustomText}
+                    onChange={() => setUseCustomText(false)}
+                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-300">Sử dụng truyện hiện tại</span>
+                </label>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    name="textSource"
+                    value="custom"
+                    checked={useCustomText}
+                    onChange={() => setUseCustomText(true)}
+                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-300">Nhập văn bản tùy chỉnh</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Text Input */}
+          {useCustomText && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-blue-400 pl-4">Nhập văn bản tùy chỉnh</h2>
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <textarea
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  placeholder="Nhập văn bản bạn muốn chuyển đổi thành giọng nói..."
+                  className="w-full h-40 bg-gray-600 text-gray-100 border border-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-gray-500 text-xs">
+                    Số từ: ~{getWordCount(customText)}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    Số ký tự: {customText.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Voice Settings */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold border-l-4 border-blue-400 pl-4">{t('tts.voiceSettings.title')}</h2>
@@ -220,38 +283,38 @@ const VoicePage: React.FC = () => {
                   id="maxWords"
                   type="number"
                   value={maxWords}
-                  onChange={(e) => setMaxWords(parseInt(e.target.value) || 500)}
-                  min="100"
-                  max="3000"
-                  step="50"
+                  onChange={(e) => setMaxWords(parseInt(e.target.value) || 3000)}
+                  min="1000"
+                  max="6000"
+                  step="500"
                   className="w-full bg-gray-700/50 border border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                                  <p className="text-xs text-gray-400 mt-1">{t('tts.voiceSettings.maxWordsHelp')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('tts.voiceSettings.maxWordsHelp')}</p>
+              </div>
+            </div>
+          </div>
+            
+          {/* Chunks Estimation */}
+          {getCurrentText() && (
+            <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-600/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                  </svg>
+                  <span className="text-sm text-blue-300 font-medium">
+                    {estimatedChunks} {estimatedChunks === 1 ? t('tts.estimation.audioFile') : t('tts.estimation.audioFiles')}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  ~{Math.ceil(estimatedChunks * 2)} {t('tts.estimation.timeEstimate')}
                 </div>
               </div>
             </div>
-            
-            {/* Chunks Estimation */}
-            {storyText && (
-              <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-600/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
-                    </svg>
-                                         <span className="text-sm text-blue-300 font-medium">
-                       {estimatedChunks} {estimatedChunks === 1 ? t('tts.estimation.audioFile') : t('tts.estimation.audioFiles')}
-                     </span>
-                   </div>
-                   <div className="text-xs text-gray-400">
-                     ~{Math.ceil(estimatedChunks * 2)} {t('tts.estimation.timeEstimate')}
-                   </div>
-                </div>
-              </div>
-            )}
+          )}
 
           {/* Story Preview */}
-          {storyText && (
+          {!useCustomText && storyText && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold border-l-4 border-green-400 pl-4">{t('tts.storyPreview')}</h2>
@@ -270,6 +333,7 @@ const VoicePage: React.FC = () => {
               </div>
             </div>
           )}
+
           {/* Rate Limiting Status */}
           <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
             <h3 className="text-lg font-semibold text-cyan-400 mb-3">{t('tts.rateLimitStatus') || 'TTS Rate Limit Status'}</h3>
@@ -303,7 +367,7 @@ const VoicePage: React.FC = () => {
           <div className="flex justify-center">
             <button
               onClick={handleConvertToSpeech}
-              disabled={isConverting || !storyText.trim()}
+              disabled={isConverting || !getCurrentText().trim()}
               className="bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold py-3 px-8 rounded-lg shadow-lg hover:from-green-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
               {isConverting ? (

@@ -22,6 +22,8 @@ const ImageGeneratorPage: React.FC = () => {
   const router = useRouter();
   const [masterPrompt, setMasterPrompt] = useState<string>('');
   const [storyText, setStoryText] = useState<string>('');
+  const [useCustomText, setUseCustomText] = useState(false);
+  const [customText, setCustomText] = useState('');
   const [wordsPerSegment, setWordsPerSegment] = useState<number>(1000);
   const [numberOfImages, setNumberOfImages] = useState<number>(2);
   const [segments, setSegments] = useState<StorySegment[]>([]);
@@ -33,6 +35,14 @@ const ImageGeneratorPage: React.FC = () => {
   const [autoGenerateProgress, setAutoGenerateProgress] = useState<{ current: number; total: number; currentSegment: string }>({ current: 0, total: 0, currentSegment: '' });
   const [showConfirmDialog, setShowConfirmDialog] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const getCurrentText = () => {
+    return useCustomText ? customText : storyText;
+  };
+
+  const getWordCount = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
 
   useEffect(() => {
     const initializeStory = async () => {
@@ -59,15 +69,51 @@ const ImageGeneratorPage: React.FC = () => {
           router.push('/');
         }
       } else {
-        // No story ID provided, redirect to home
-        router.push('/');
+        // No story ID provided, allow custom text input
+        setUseCustomText(true);
       }
     };
 
     initializeStory();
   }, [storyId, router]);
 
+  // Generate segments when text source changes
+  useEffect(() => {
+    const currentText = getCurrentText();
+    if (currentText) {
+      generateSegments(currentText, wordsPerSegment);
+    }
+  }, [useCustomText, customText, wordsPerSegment]);
+
+  // Generate master prompt when text changes
+  useEffect(() => {
+    const generateMasterPromptForCurrentText = async () => {
+      const currentText = getCurrentText();
+      if (currentText && currentText.trim()) {
+        try {
+          setIsGeneratingMaster(true);
+          const generatedMasterPrompt = await generateMasterPrompt(currentText);
+          setMasterPrompt(generatedMasterPrompt);
+        } catch (error) {
+          console.error('Error generating master prompt:', error);
+          // Continue without master prompt if it fails
+        } finally {
+          setIsGeneratingMaster(false);
+        }
+      }
+    };
+
+    if (useCustomText && customText.trim()) {
+      generateMasterPromptForCurrentText();
+    }
+  }, [useCustomText, customText]);
+
   const generateSegments = (text: string, wordsPerSeg: number) => {
+    if (!text.trim()) {
+      setSegments([]);
+      return;
+    }
+
     const words = text.trim().split(/\s+/);
     const newSegments: StorySegment[] = [];
     
@@ -92,8 +138,9 @@ const ImageGeneratorPage: React.FC = () => {
 
   const handleWordsPerSegmentChange = (newWordsPerSegment: number) => {
     setWordsPerSegment(newWordsPerSegment);
-    if (storyText) {
-      generateSegments(storyText, newWordsPerSegment);
+    const currentText = getCurrentText();
+    if (currentText) {
+      generateSegments(currentText, newWordsPerSegment);
     }
   };
 
@@ -429,6 +476,83 @@ const ImageGeneratorPage: React.FC = () => {
             <p className="text-gray-400">{t('imageGen.description')}</p>
           </div>
 
+          {/* Text Source Selection */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold border-l-4 border-purple-400 pl-4">Chọn nguồn văn bản</h2>
+            <div className="bg-gray-700/30 rounded-lg p-4">
+              <div className="space-y-3">
+                {storyId && (
+                  <label className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="textSource"
+                      value="story"
+                      checked={!useCustomText}
+                      onChange={() => setUseCustomText(false)}
+                      className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 focus:ring-purple-500"
+                    />
+                    <span className="text-gray-300">Sử dụng truyện hiện tại</span>
+                  </label>
+                )}
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    name="textSource"
+                    value="custom"
+                    checked={useCustomText}
+                    onChange={() => setUseCustomText(true)}
+                    className="w-4 h-4 text-purple-600 bg-gray-700 border-gray-600 focus:ring-purple-500"
+                  />
+                  <span className="text-gray-300">Nhập văn bản tùy chỉnh</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Custom Text Input */}
+          {useCustomText && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-purple-400 pl-4">Nhập văn bản tùy chỉnh</h2>
+              <div className="bg-gray-700/30 rounded-lg p-4">
+                <textarea
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  placeholder="Nhập văn bản bạn muốn tạo ảnh..."
+                  className="w-full h-40 bg-gray-600 text-gray-100 border border-gray-500 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-gray-500 text-xs">
+                    Số từ: ~{getWordCount(customText)}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    Số ký tự: {customText.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Story Preview */}
+          {!useCustomText && storyText && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold border-l-4 border-purple-400 pl-4">Xem trước truyện</h2>
+              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-400">Số từ: ~{getWordCount(storyText)}</span>
+                  <span className="text-sm text-gray-400">Số ký tự: {storyText.length}</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto">
+                  <p className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">
+                    {storyText.substring(0, 500)}
+                    {storyText.length > 500 && (
+                      <span className="text-gray-500">... (và {storyText.length - 500} ký tự nữa)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Settings */}
           <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
             <h3 className="text-lg font-semibold text-cyan-400 mb-3">{t('imageGen.settings.title')}</h3>
@@ -460,6 +584,9 @@ const ImageGeneratorPage: React.FC = () => {
                 <span className="text-sm text-gray-400">
                   {t('imageGen.settings.totalSegments')}: <span className="font-semibold text-cyan-400">{segments.length}</span>
                 </span>
+                <div className="text-xs text-gray-500 mt-1">
+                  Từ: {useCustomText ? 'Văn bản tùy chỉnh' : 'Truyện hiện tại'}
+                </div>
               </div>
             </div>
             
@@ -484,7 +611,7 @@ const ImageGeneratorPage: React.FC = () => {
             <div className="border-t border-gray-600 pt-4">
               <button
                 onClick={handleAutoGenerateAll}
-                disabled={isAutoGenerating || isGeneratingImage || isGeneratingPrompt || segments.length === 0}
+                disabled={isAutoGenerating || isGeneratingImage || isGeneratingPrompt || segments.length === 0 || !getCurrentText().trim()}
                 className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-300"
               >
                 {isAutoGenerating ? (
@@ -529,162 +656,182 @@ const ImageGeneratorPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Segments List */}
-            <div className="lg:col-span-1">
-              <h3 className="text-lg font-semibold text-purple-400 mb-4">{t('imageGen.segments.title')} ({segments.length})</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {segments.map((segment, index) => (
-                  <button
-                    key={segment.id}
-                    onClick={() => setSelectedSegment(index)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                      selectedSegment === index
-                        ? 'bg-purple-600/30 border-purple-500 text-white'
-                        : 'bg-gray-700/30 border-gray-600 text-gray-300 hover:bg-gray-600/30'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{t('imageGen.segments.segment')} {segment.id}</span>
-                      {segment.imageUrls && segment.imageUrls.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-xs text-green-400">({segment.imageUrls.length})</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {segment.wordCount} {t('imageGen.segments.words')}
-                    </div>
-                  </button>
-                ))}
+          {/* Content Area */}
+          {!getCurrentText().trim() ? (
+            <div className="bg-gray-700/30 rounded-lg p-8 border border-gray-600 text-center">
+              <div className="text-gray-500 mb-4">
+                <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-400 mb-2">
+                  {useCustomText ? 'Chưa có văn bản' : 'Chưa có truyện'}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {useCustomText 
+                    ? 'Hãy nhập văn bản ở phía trên để bắt đầu tạo ảnh'
+                    : 'Hãy chọn truyện hoặc nhập văn bản tùy chỉnh để bắt đầu tạo ảnh'
+                  }
+                </p>
               </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Segments List */}
+              <div className="lg:col-span-1">
+                <h3 className="text-lg font-semibold text-purple-400 mb-4">{t('imageGen.segments.title')} ({segments.length})</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {segments.map((segment, index) => (
+                    <button
+                      key={segment.id}
+                      onClick={() => setSelectedSegment(index)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                        selectedSegment === index
+                          ? 'bg-purple-600/30 border-purple-500 text-white'
+                          : 'bg-gray-700/30 border-gray-600 text-gray-300 hover:bg-gray-600/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{t('imageGen.segments.segment')} {segment.id}</span>
+                        {segment.imageUrls && segment.imageUrls.length > 0 && (
+                          <div className="flex items-center space-x-1">
+                            <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-xs text-green-400">({segment.imageUrls.length})</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {segment.wordCount} {t('imageGen.segments.words')}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            {/* Content Area */}
-            <div className="lg:col-span-2">
-              {segments.length > 0 && (
-                <div className="space-y-6">
-                  {/* Segment Content */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-cyan-400 mb-3">
-                      {t('imageGen.content.title')} {segments[selectedSegment]?.id}
-                    </h3>
-                    <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600 max-h-64 overflow-y-auto">
-                      <p className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">
-                        {segments[selectedSegment]?.content}
-                      </p>
+              {/* Content Area */}
+              <div className="lg:col-span-2">
+                {segments.length > 0 && (
+                  <div className="space-y-6">
+                    {/* Segment Content */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-cyan-400 mb-3">
+                        {t('imageGen.content.title')} {segments[selectedSegment]?.id}
+                      </h3>
+                      <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600 max-h-64 overflow-y-auto">
+                        <p className="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">
+                          {segments[selectedSegment]?.content}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Summary */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-yellow-400 mb-3">{t('imageGen.summary.title')}</h3>
-                    <textarea
-                      value={segments[selectedSegment]?.summary || ''}
-                      onChange={(e) => handleSummaryChange(selectedSegment, e.target.value)}
-                      placeholder={t('imageGen.summary.placeholder')}
-                      className="w-full bg-gray-700/30 border border-gray-600 rounded-lg p-3 text-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                      rows={3}
-                    />
-                  </div>
+                    {/* Summary */}
+                    <div>
+                      <h3 className="text-lg font-semibold text-yellow-400 mb-3">{t('imageGen.summary.title')}</h3>
+                      <textarea
+                        value={segments[selectedSegment]?.summary || ''}
+                        onChange={(e) => handleSummaryChange(selectedSegment, e.target.value)}
+                        placeholder={t('imageGen.summary.placeholder')}
+                        className="w-full bg-gray-700/30 border border-gray-600 rounded-lg p-3 text-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        rows={3}
+                      />
+                    </div>
 
-                  {/* Image Prompt */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-green-400">{t('imageGen.prompt.title')}</h3>
+                    {/* Image Prompt */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-green-400">{t('imageGen.prompt.title')}</h3>
+                        <button
+                          onClick={() => generateSuggestedPrompt(selectedSegment)}
+                          disabled={isGeneratingPrompt}
+                          className="flex items-center space-x-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+                        >
+                          {isGeneratingPrompt ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                          )}
+                          <span>{t('imageGen.prompt.suggest')}</span>
+                        </button>
+                      </div>
+                      <textarea
+                        value={segments[selectedSegment]?.imagePrompt || ''}
+                        onChange={(e) => handleImagePromptChange(selectedSegment, e.target.value)}
+                        placeholder={t('imageGen.prompt.placeholder')}
+                        className="w-full bg-gray-700/30 border border-gray-600 rounded-lg p-3 text-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        rows={4}
+                      />
+                    </div>
+
+                    {/* Generate Image Button */}
+                    <div className="flex justify-center">
                       <button
-                        onClick={() => generateSuggestedPrompt(selectedSegment)}
-                        disabled={isGeneratingPrompt}
-                        className="flex items-center space-x-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+                        onClick={() => handleGenerateImage(selectedSegment)}
+                        disabled={isGeneratingImage || !segments[selectedSegment]?.imagePrompt}
+                        className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-300"
                       >
-                        {isGeneratingPrompt ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        {isGeneratingImage ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         )}
-                        <span>{t('imageGen.prompt.suggest')}</span>
+                        <span>{t('imageGen.generate')}</span>
                       </button>
-                    </div>
-                    <textarea
-                      value={segments[selectedSegment]?.imagePrompt || ''}
-                      onChange={(e) => handleImagePromptChange(selectedSegment, e.target.value)}
-                      placeholder={t('imageGen.prompt.placeholder')}
-                      className="w-full bg-gray-700/30 border border-gray-600 rounded-lg p-3 text-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      rows={4}
-                    />
-                  </div>
-
-                  {/* Generate Image Button */}
-                  <div className="flex justify-center">
-                    <button
-                      onClick={() => handleGenerateImage(selectedSegment)}
-                      disabled={isGeneratingImage || !segments[selectedSegment]?.imagePrompt}
-                      className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-300"
-                    >
-                      {isGeneratingImage ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                      <span>{t('imageGen.generate')}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Image Preview */}
-            <div className="lg:col-span-1">
-              <h3 className="text-lg font-semibold text-pink-400 mb-4">{t('imageGen.preview.title')}</h3>
-              <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
-                {segments[selectedSegment]?.imageUrls && segments[selectedSegment]?.imageUrls!.length > 0 ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 gap-3">
-                      {segments[selectedSegment]?.imageUrls!.map((imageUrl, imageIndex) => (
-                        <div key={imageIndex} className="space-y-2">
-                          <img
-                            src={imageUrl}
-                            alt={`Segment ${segments[selectedSegment].id} - Image ${imageIndex + 1}`}
-                            className="w-full h-48 object-cover rounded-lg"
-                          />
-                          <button
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = imageUrl;
-                              link.download = `story_segment_${segments[selectedSegment].id}_image_${imageIndex + 1}.jpg`;
-                              link.click();
-                            }}
-                            className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm transition-colors"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span>{t('imageGen.download')} {imageIndex + 1}</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
-                    <div className="text-center">
-                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-sm">{t('imageGen.preview.noImage')}</p>
                     </div>
                   </div>
                 )}
               </div>
+
+              {/* Image Preview */}
+              <div className="lg:col-span-1">
+                <h3 className="text-lg font-semibold text-pink-400 mb-4">{t('imageGen.preview.title')}</h3>
+                <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                  {segments[selectedSegment]?.imageUrls && segments[selectedSegment]?.imageUrls!.length > 0 ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        {segments[selectedSegment]?.imageUrls!.map((imageUrl, imageIndex) => (
+                          <div key={imageIndex} className="space-y-2">
+                            <img
+                              src={imageUrl}
+                              alt={`Segment ${segments[selectedSegment].id} - Image ${imageIndex + 1}`}
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                            <button
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = imageUrl;
+                                link.download = `story_segment_${segments[selectedSegment].id}_image_${imageIndex + 1}.jpg`;
+                                link.click();
+                              }}
+                              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-sm transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span>{t('imageGen.download')} {imageIndex + 1}</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-gray-500">
+                      <div className="text-center">
+                        <svg className="w-16 h-16 mx-auto mb-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-sm">{t('imageGen.preview.noImage')}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Error Display */}
           {error && (

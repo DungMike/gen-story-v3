@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { v4 as uuidv4 } from 'uuid';
+import wav from 'wav';
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error("API_KEY environment variable not set");
@@ -95,7 +96,7 @@ function makeRateLimitedTTSRequest(params: { text: string; chunkIndex: number; t
 async function makeActualTTSRequest(params: { text: string; chunkIndex: number; totalChunks: number; voiceName?: string }): Promise<any> {
   const { text, chunkIndex, totalChunks, voiceName = 'Kore' } = params;
   
-  const prompt = `Hãy đọc đoạn văn bản sau bằng giọng đọc tự nhiên, rõ ràng và có cảm xúc phù hợp với nội dung:
+  const prompt = `Hãy đọc đoạn văn bản sau bằng giọng đọc tự nhiên, chậm rãi, trầm, lặng lẽ, rõ ràng và có cảm xúc phù hợp với nội dung:
 
 ${text}`;
 
@@ -127,9 +128,48 @@ interface TTSProgress {
   status: 'processing' | 'completed' | 'error';
 }
 
-// Helper function to create downloadable audio blob
-function createAudioBlob(audioBuffer: ArrayBuffer): Blob {
-  return new Blob([audioBuffer], { type: 'audio/wav' });
+function writeString(view: DataView, offset: number, str: string) {
+  for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
+function pcmToWav(pcmData: ArrayBuffer, channels: number, sampleRate: number, bitDepth: number): Blob {
+  const headerSize = 44;
+  const dataSize = pcmData.byteLength;
+  const fileSize = headerSize + dataSize;
+  
+  const buffer = new ArrayBuffer(fileSize);
+  const view = new DataView(buffer);
+
+  let offset = 0;
+
+  // RIFF header
+  writeString(view, offset, 'RIFF'); offset += 4;
+  view.setUint32(offset, fileSize - 8, true); offset += 4;
+  writeString(view, offset, 'WAVE'); offset += 4;
+
+  // fmt subchunk
+  writeString(view, offset, 'fmt '); offset += 4;
+  view.setUint32(offset, 16, true); offset += 4; // Subchunk1Size for PCM
+  view.setUint16(offset, 1, true); offset += 2; // AudioFormat 1 for PCM
+  view.setUint16(offset, channels, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  const byteRate = sampleRate * channels * (bitDepth / 8);
+  view.setUint32(offset, byteRate, true); offset += 4;
+  const blockAlign = channels * (bitDepth / 8);
+  view.setUint16(offset, blockAlign, true); offset += 2;
+  view.setUint16(offset, bitDepth, true); offset += 2;
+
+  // data subchunk
+  writeString(view, offset, 'data'); offset += 4;
+  view.setUint32(offset, dataSize, true); offset += 4;
+
+  // Write PCM data
+  const pcmBytes = new Uint8Array(pcmData);
+  new Uint8Array(buffer).set(pcmBytes, headerSize);
+
+  return new Blob([buffer], { type: 'audio/wav' });
 }
 
 // Helper function to download blob as file
@@ -184,12 +224,13 @@ async function convertChunkToSpeech(
 
     // Convert base64 to ArrayBuffer
     const binaryString = atob(data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
     }
     
-    const audioBlob = createAudioBlob(bytes.buffer);
+    const audioBlob = pcmToWav(bytes.buffer, 1, 24000, 16);
     const fileName = `story_chunk_${chunkIndex + 1}.wav`;
     
     // Return the blob URL and filename for download
@@ -209,13 +250,12 @@ export async function convertTextToSpeech(
   text: string,
   onProgress?: (progress: TTSProgress) => void,
   voiceName: string = 'Kore',
-  maxWords: number = 1500
+  maxWords: number = 3000
 ): Promise<Array<{blob: Blob, filename: string, url: string}>> {
   try {
     // Split text into chunks
-    const chunks = splitTextIntoChunks(text, 1500);
+    const chunks = splitTextIntoChunks(text, maxWords);
     console.log(`Text split into ${chunks.length} chunks using voice ${voiceName}`);
-
     // Convert chunks to speech with rate limiting (sequential processing)
     const audioFiles: Array<{blob: Blob, filename: string, url: string}> = [];
     
